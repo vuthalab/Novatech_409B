@@ -36,7 +36,7 @@ Other useful functions include the save_current_status() function which allows f
 
 Here is a code snippet code I have connecting to the 409B and turning on two of the AOM for my lasers:
 
-'''python
+```python
 #Setting up Connection
 SignalGenerator = Generator_409B('/dev/409B')
 SignalGenerator.disable_echo()
@@ -44,27 +44,26 @@ SignalGenerator.status()
 
 #Turning on lasers
 SignalGenerator.set_amplitude(int(VblueAOM*1023),Blue410LaserChannel) SignalGenerator.set_amplitude(int(V697AOM*1023), Red697LaserChannel) SignalGenerator.set_frequency(AOMcentrefreq.magnitude, Blue410LaserChannel) SignalGenerator.set_frequency(AOMcentrefreq.magnitude, Red697LaserChannel)
-'''
+```
 
-<h2>Table Mode</h2>
+## Table Mode
 An extremely useful mode of operation for the 409B  is table mode which allows for the cycling of different settings in a timed or triggered manner (both hardware and software). The table mode works by cycling through different amplitude, phase and frequency settings. The table settings can be loaded by using the fill_table function which takes frequency, amplitude, phase and timearrays for the table. Then the table mode sequence can be turned on and off using the toggle_table() function. Some notes on timing:
-<ul>
-	<li>The minimum time increment 100 us and the maximum is 25.5 ms (denoted as TABLE_HOLD)</li>
-	<li>If time 0 is entered, that setting will return for 100 us and then return to the start of the table</li>
-	<li>If TABLE_HOLD/25.5 is entered, the table stays stuck on that setting until it is triggered out of it (either by software or hardware)</li>
-	<li>The software trigger can done using the advance_table() and a hardware trigger can be applied with a pulse to the TS port.</li>
-</ul>
+
+- The minimum time increment 100 us and the maximum is 25.5 ms (denoted as TABLE_HOLD)</li>
+- If time 0 is entered, that setting will return for 100 us and then return to the start of the table</li>
+- If TABLE_HOLD/25.5 is entered, the table stays stuck on that setting until it is triggered out of it (either by software or hardware)
+-The software trigger can done using the advance_table() and a hardware trigger can be applied with a pulse to the TS port.
+
 Some things to note:
-<ul>
-	<li>The table mode only works for channels 0 and 1 and must be run synchronously (that is, the same times must be used for each step in channel 0 and 1)</li>
-	<li>Even if you're only using table mode with one channel, you must fill tables for both 0 and 1</li>
-	<li>For hardware triggering, the 409B TS port triggers on a negative edge is. (This is the default and it can't be changed)</li>
-	<li>The table settings can be read out using read_table()</li>
-</ul>
+
+- The table mode only works for channels 0 and 1 and must be run synchronously (that is, the same times must be used for each step in channel 0 and 1)</li>
+- Even if you're only using table mode with one channel, you must fill tables for both 0 and 1</li>
+- For hardware triggering, the 409B TS port triggers on a negative edge is. (This is the default and it can't be changed)</li>
+- The table settings can be read out using read_table()</li>
+
 Here is some sample code that I use for pulsing 2 lasers using the table mode with a hardware trigger from the Pulse Generator:
 
-[code language = 'python']
-
+```python
 frequency_array0 = [AOMcentrefreq.to(ureg.Hz).magnitude,
 AOMcentrefreq.to(ureg.Hz).magnitude, AOMcentrefreq.to(ureg.Hz).magnitude, AOMcentrefreq.to(ureg.Hz).magnitude, AOMcentrefreq.to(ureg.Hz).magnitude]
 phase_array0 = [0, 0, 0, 0, 0]
@@ -74,5 +73,4 @@ phase_array1 = [0, 0, 0, 0, 0]
 amplitude_array1 = [0, 0, 0, V697AOM, 0] #Takes units in volts
 time_array = [SignalGenerator.TABLE_HOLD, bluePulseLength.magnitude, delayBetweenPulses.magnitude, redPulseLength.magnitude, 0] #Takes units in milliseconds
 SignalGenerator.fill_table(frequency_array0, phase_array0, amplitude_array0, frequency_array1, phase_array1, amplitude_array1, time_array)
-
-[/code]
+```
