@@ -4,22 +4,22 @@ Python class to control the Novatech Instruments 409B 171 MHz 4-channel signal g
 ## Requirements
 - pyserial: `pip install pyserial`
 
-<h2><strong>Hardware</strong></h2>
+## Hardware
 The generator is powered using a +5V AC power adapter that plugs into the wall. For serial communication there is a 9-pin DSUB which is connected to a DSUB to USB converter to use it with a computer. Along with those, the back panel also has 2 SMA outputs labeled "TS" and "I/O." TS is used for hardware triggering of the device and I/O is used for faster triggering of hardware. We haven't figured out how to get this feature to work yet should anyone attempt it, be aware that the pin should only voltages between 0 to 3.3V (a 50 Ohm terminator has been added to account for this for use with the pulse generator). Finally, there a BNC on the back that is labeled as "10 MHz REF IN." This is meant for syncing to an external clock but is a little problematic for the following issue:
 
 The 409B comes with an add-on option they call /R which allows for the clock of the 409B to be synced to a 10 MHz reference. We didn't get this option so what the device instead does is divide the 10 MHz reference against its internal clock which runs at ~28 MHz. This leads to doing an annoying calibration which leads to the maximum output frequency being limited to ~61 MHz (171*10/28) which is less than ideal. To see how to do this see section 4.6 - 4.10 in the manual. But if you don't want to deal with the hassle, I suggest doing one of the following:
-<ol>
-	<li>Just live with running on internal clock, especially if the type of time sequencing you're doing is on a scale that's larger than 100 ns changes.</li>
-	<li>Try having your other devices synced to the clock output of 409B. (Note: I haven't actually tried this since I just went with option 1.)</li>
-</ol>
+
+- Just live with running on internal clock, especially if the type of time sequencing you're doing is on a scale that's larger than 100 ns changes.
+- Try having your other devices synced to the clock output of 409B. (Note: I haven't actually tried this since I just went with option 1.)
+
 As for the front panel, it has 4 BNC for outputting the signal with the channels labeled as 0 - 3.
-<h1><strong>Software
-</strong></h1>
+
+## Software
 I won't explain the code I've written in detail since it's pretty easy to follow and well commented. Instead, I'll go over useful functions and modes of operation as well as explain some non-obvious commands that we have. For working with the device, we set up a connection using pyserial which connects to the port that the 409B is connected to. On the Sm2+ experiment we have fixed this port using a udev file (See Wesley's post on udev) but you can just find the explicit name of the port that the 409B is connected to.
 
 Note: An easy way to do is before plugging the device in, open terminal and enter 'find /dev/ttyUSB*' This will display all USB ports currently in use. Then plug in the device again and re-enter the command. The new port that shows up is the port that the 409B is connected to.
 
-(Extra note: A more correct/linuxy way of doing this would be find /dev -name 'ttyUSB*'. In general, the find command allows you to do find <base directory> <options> which makes it very versatile and useful.)
+(Extra note: A more correct/linux-y way of doing this would be find /dev -name 'ttyUSB*'. In general, the find command allows you to do find <base directory> <options> which makes it very versatile and useful.)
 
 With the right port established, it is as simple as using a gen = Generator_409B('/dev/ttyUSB*) command where * is the port that you found. It is strongly advised to also apply the disable_echo() command. The device is defaulted to echo commands back to the computer which slows down the processing (and isn't necessary).
 
@@ -36,7 +36,7 @@ Other useful functions include the save_current_status() function which allows f
 
 Here is a code snippet code I have connecting to the 409B and turning on two of the AOM for my lasers:
 
-[code language = 'python']
+'''python
 #Setting up Connection
 SignalGenerator = Generator_409B('/dev/409B')
 SignalGenerator.disable_echo()
@@ -44,8 +44,8 @@ SignalGenerator.status()
 
 #Turning on lasers
 SignalGenerator.set_amplitude(int(VblueAOM*1023),Blue410LaserChannel) SignalGenerator.set_amplitude(int(V697AOM*1023), Red697LaserChannel) SignalGenerator.set_frequency(AOMcentrefreq.magnitude, Blue410LaserChannel) SignalGenerator.set_frequency(AOMcentrefreq.magnitude, Red697LaserChannel)
+'''
 
-[/code]
 <h2>Table Mode</h2>
 An extremely useful mode of operation for the 409B  is table mode which allows for the cycling of different settings in a timed or triggered manner (both hardware and software). The table mode works by cycling through different amplitude, phase and frequency settings. The table settings can be loaded by using the fill_table function which takes frequency, amplitude, phase and timearrays for the table. Then the table mode sequence can be turned on and off using the toggle_table() function. Some notes on timing:
 <ul>
