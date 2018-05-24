@@ -1,5 +1,5 @@
 # Novatech_409B
-Python class to control the Novatech Instruments 409B 171 MHz 4-channel signal generator
+Python class to control the Novatech Instruments 409B 171 MHz 4-channel signal generator. This code allows for communication with python to set the frequency, phase and amplitude for independent channels as well as using the device in table mode. 
 
 ## Requirements
 - pyserial: `pip install pyserial`
@@ -15,24 +15,24 @@ The 409B comes with an add-on option they call /R which allows for the clock of 
 As for the front panel, it has 4 BNC for outputting the signal with the channels labeled as 0 - 3.
 
 ## Software
-I won't explain the code I've written in detail since it's pretty easy to follow and well commented. Instead, I'll go over useful functions and modes of operation as well as explain some non-obvious commands that we have. For working with the device, we set up a connection using pyserial which connects to the port that the 409B is connected to. On the Sm2+ experiment we have fixed this port using a udev file (See Wesley's post on udev) but you can just find the explicit name of the port that the 409B is connected to.
+I won't explain the code I've written in detail since it's pretty easy to follow and well commented. Instead, I'll go over useful functions and modes of operation as well as explain some non-obvious commands that we have. For working with the device, we set up a connection using pyserial which connects to the port that the 409B is connected to. 
 
-Note: An easy way to do is before plugging the device in, open terminal and enter 'find /dev/ttyUSB*' This will display all USB ports currently in use. Then plug in the device again and re-enter the command. The new port that shows up is the port that the 409B is connected to.
+Note: An easy way to do is before plugging the device in, open terminal and enter `find /dev/ttyUSB*` This will display all USB ports currently in use. Then plug in the device again and re-enter the command. The new port that shows up is the port that the 409B is connected to.
 
-(Extra note: A more correct/linux-y way of doing this would be find /dev -name 'ttyUSB*'. In general, the find command allows you to do find <base directory> <options> which makes it very versatile and useful.)
+(Extra note: A more correct/linux-y way of doing this would be find `/dev -name 'ttyUSB*`. In general, the find command allows you to do find <base directory> <options> which makes it very versatile and useful.)
 
-With the right port established, it is as simple as using a gen = Generator_409B('/dev/ttyUSB*) command where * is the port that you found. It is strongly advised to also apply the disable_echo() command. The device is defaulted to echo commands back to the computer which slows down the processing (and isn't necessary).
+With the right port established, it is as simple as using a `gen = Generator_409B('/dev/ttyUSB*)` command where * is the port that you found. It is strongly advised to also apply the `disable_echo()` command. The device is defaulted to echo commands back to the computer which slows down the processing (and isn't necessary).
 
-With connection established, the channels can be programmed independently to output signals using the set_frequency, set_amplitude and set_phase functions. There is no enable/display for the channels but you can emulate this effect by setting your amplitude to 0 for disabling.
-The set_frequency function takes inputs in MHz (0 to 171 MHz in increments of 0.1 Hz)
-The set_amplitude function takes inputs in bits (0 to 1023 which maps to 0 - 1 V)
-The set_phase function takes inputs in bits (0 to 16383 which maps to 0 to 360 degrees)
+With connection established, the channels can be programmed independently to output signals using the `set_frequency`, `set_amplitude` and `set_phase` functions. There is no enable/display for the channels but you can emulate this effect by setting your amplitude to 0 for disabling.
+The `set_frequency` function takes inputs in MHz (0 to 171 MHz in increments of 0.1 Hz)
+The `set_amplitude` function takes inputs in bits (0 to 1023 which maps to 0 - 1 V)
+The `set_phase` function takes inputs in bits (0 to 16383 which maps to 0 to 360 degrees)
 
 These functions also have safe guards for silly outputs. So if you put in a value that goes past the boundary, it will by default put them to an allowable value instead.
 
 One additional thing to note is that the 409B outputs voltage to a 50 Ohm load, so there is no compensation like you would expect with a function generator. So depending on the load you're driving, the output voltage seen will be different. I mention this because I thankfully realized this before driving a RF amplifier with twice the voltage that I actually needed.
 
-Other useful functions include the save_current_status() function which allows for the saving of settings to the onboard EEprom. I've also written a modulate_channel() function which can be used for pulsing RF at a user specified frequency. This uses the computer's clock so it isn't meant for important time sequeneces but it's primarily useful for things like aligning AOMs or debugging signals.
+Other useful functions include the `save_current_status()` function which allows for the saving of settings to the onboard EEprom. I've also written a `modulate_channel()` function which can be used for pulsing RF at a user specified frequency. This uses the computer's clock so it isn't meant for important time sequeneces but it's primarily useful for things like aligning AOMs or debugging signals.
 
 Here is a code snippet code I have connecting to the 409B and turning on two of the AOM for my lasers:
 
@@ -47,19 +47,19 @@ SignalGenerator.set_amplitude(int(VblueAOM*1023),Blue410LaserChannel) SignalGene
 ```
 
 ## Table Mode
-An extremely useful mode of operation for the 409B  is table mode which allows for the cycling of different settings in a timed or triggered manner (both hardware and software). The table mode works by cycling through different amplitude, phase and frequency settings. The table settings can be loaded by using the fill_table function which takes frequency, amplitude, phase and timearrays for the table. Then the table mode sequence can be turned on and off using the toggle_table() function. Some notes on timing:
+An extremely useful mode of operation for the 409B  is table mode which allows for the cycling of different settings in a timed or triggered manner (both hardware and software). The table mode works by cycling through different amplitude, phase and frequency settings. The table settings can be loaded by using the `fill_table` function which takes frequency, amplitude, phase and timearrays for the table. Then the table mode sequence can be turned on and off using the `toggle_table()` function. Some notes on timing:
 
-- The minimum time increment 100 us and the maximum is 25.5 ms (denoted as TABLE_HOLD)</li>
-- If time 0 is entered, that setting will return for 100 us and then return to the start of the table</li>
+- The minimum time increment 100 us and the maximum is 25.5 ms (denoted as TABLE_HOLD)
+- If time 0 is entered, that setting will return for 100 us and then return to the start of the table
 - If TABLE_HOLD/25.5 is entered, the table stays stuck on that setting until it is triggered out of it (either by software or hardware)
 -The software trigger can done using the advance_table() and a hardware trigger can be applied with a pulse to the TS port.
 
 Some things to note:
 
-- The table mode only works for channels 0 and 1 and must be run synchronously (that is, the same times must be used for each step in channel 0 and 1)</li>
-- Even if you're only using table mode with one channel, you must fill tables for both 0 and 1</li>
-- For hardware triggering, the 409B TS port triggers on a negative edge is. (This is the default and it can't be changed)</li>
-- The table settings can be read out using read_table()</li>
+- The table mode only works for channels 0 and 1 and must be run synchronously (that is, the same times must be used for each step in channel 0 and 1)
+- Even if you're only using table mode with one channel, you must fill tables for both 0 and 1
+- For hardware triggering, the 409B TS port triggers on a negative edge is. (This is the default and it can't be changed)
+- The table settings can be read out using `read_table()`
 
 Here is some sample code that I use for pulsing 2 lasers using the table mode with a hardware trigger from the Pulse Generator:
 
